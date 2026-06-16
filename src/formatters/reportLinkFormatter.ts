@@ -5,7 +5,7 @@ const DART_REPORT_BASE_URL = 'https://dart.fss.or.kr/dsaf001/main.do';
 export function buildReportMarkdownLink(report: DartReportSearchResult): string {
 	const url = buildReportUrl(report.receiptNo);
 	const title = `${report.corpName}/${getReportKindLabel(report.reportKind)}/${formatReceiptDate(report.receiptDate)}`;
-	return `[[${title}](${url})](${url})`;
+	return `[${title}](${url})`;
 }
 
 export function buildReportUrl(receiptNo: string): string {
