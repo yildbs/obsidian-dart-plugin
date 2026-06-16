@@ -21,12 +21,6 @@ const EXTRACT_TITLES: Record<ExtractType, string> = {
 	separate_comprehensive_income: '포괄손익계산서',
 };
 
-const EMPTY_MESSAGES: Record<ExtractType, string> = {
-	consolidated_comprehensive_income:
-		'연결포괄손익계산서 데이터를 찾을 수 없습니다.',
-	separate_comprehensive_income: '포괄손익계산서 데이터를 찾을 수 없습니다.',
-};
-
 export default class DartPlugin extends Plugin {
 	settings!: DartPluginSettings;
 	private readonly dartClient = new DartClient();
@@ -106,25 +100,25 @@ export default class DartPlugin extends Plugin {
 				);
 
 				if (table === null) {
-					sections.push(buildEmptySection(extractType));
+					sections.push('');
 				} else {
 					sections.push(buildIncomeStatementMarkdown(table));
 				}
 			}
 
-			markdownView.editor.replaceSelection(mergeMarkdownSections(sections));
+			const markdown = mergeMarkdownSections(sections);
+			if (markdown === '') {
+				new Notice('포괄손익계산서 데이터를 찾을 수 없습니다.');
+				return;
+			}
+
+			markdownView.editor.replaceSelection(markdown);
 			new Notice('Dart 테이블을 삽입했습니다.');
 		} catch (error) {
 			console.error('DART extract failed', error);
 			new Notice(getErrorMessage(error));
 		}
 	}
-}
-
-function buildEmptySection(extractType: ExtractType): string {
-	return [`### ${EXTRACT_TITLES[extractType]}`, '', EMPTY_MESSAGES[extractType]].join(
-		'\n',
-	);
 }
 
 function getErrorMessage(error: unknown): string {

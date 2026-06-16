@@ -14,10 +14,6 @@ export function buildIncomeStatementMarkdown(
 	]);
 
 	return [
-		`### ${table.title}`,
-		'',
-		`단위: ${table.unit}원`,
-		'',
 		toMarkdownRow(header),
 		toMarkdownRow(alignment),
 		...rows.map(toMarkdownRow),
@@ -25,7 +21,8 @@ export function buildIncomeStatementMarkdown(
 }
 
 export function mergeMarkdownSections(sections: string[]): string {
-	return `${sections.join('\n\n')}\n`;
+	const nonEmptySections = sections.filter((section) => section.trim() !== '');
+	return nonEmptySections.length === 0 ? '' : `${nonEmptySections.join('\n\n')}\n`;
 }
 
 function toMarkdownRow(cells: string[]): string {

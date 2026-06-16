@@ -1,10 +1,16 @@
 const RECEIPT_NO_PATTERN = /^\d{14}$/;
+const RECEIPT_NO_QUERY_PATTERN = /[?&]rcpNo=(\d{14})/i;
 
 export function extractReceiptNo(input: string): string | null {
 	const trimmed = input.trim();
 
 	if (RECEIPT_NO_PATTERN.test(trimmed)) {
 		return trimmed;
+	}
+
+	const embeddedReceiptNo = trimmed.match(RECEIPT_NO_QUERY_PATTERN)?.[1];
+	if (embeddedReceiptNo !== undefined) {
+		return embeddedReceiptNo;
 	}
 
 	try {
