@@ -34,7 +34,7 @@ export default class DartPlugin extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		this.addRibbonIcon('file-spreadsheet', 'Dart 데이터 추출', () => {
+		this.addRibbonIcon('table', 'Dart 데이터 추출', () => {
 			this.openExtractModal();
 		});
 

@@ -44,6 +44,7 @@ export interface IncomeStatementTable {
 export interface DartFinancialStatementItem {
 	sj_div?: string;
 	sj_nm?: string;
+	account_id?: string;
 	account_nm?: string;
 	thstrm_amount?: string;
 	thstrm_add_amount?: string;

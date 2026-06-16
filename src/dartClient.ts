@@ -16,6 +16,8 @@ interface DartApiResponse {
 
 interface DisclosureListResponse extends DartApiResponse {
 	list?: DisclosureListItem[];
+	page_no?: number;
+	total_page?: number;
 }
 
 interface DisclosureListItem {
@@ -41,18 +43,10 @@ export class DartClient {
 		receiptNo: string,
 	): Promise<DartDisclosureMeta> {
 		const receiptDate = getReceiptDate(receiptNo);
-		const response = await this.getJson<DisclosureListResponse>('/list.json', {
-			crtfc_key: apiKey,
-			bgn_de: receiptDate,
-			end_de: receiptDate,
-			pblntf_ty: 'A',
-			page_count: '100',
-		});
-
-		ensureSuccess(response);
-
-		const item = response.list?.find(
-			(disclosure) => disclosure.rcept_no === receiptNo,
+		const item = await this.findDisclosureInPages(
+			apiKey,
+			receiptNo,
+			receiptDate,
 		);
 		if (item === undefined) {
 			throw new Error('URL에서 찾은 접수번호의 정기공시를 찾을 수 없습니다.');
@@ -72,6 +66,40 @@ export class DartClient {
 			reportCode: reportInfo.reportCode,
 			reportKind: reportInfo.reportKind,
 		};
+	}
+
+	private async findDisclosureInPages(
+		apiKey: string,
+		receiptNo: string,
+		receiptDate: string,
+	): Promise<DisclosureListItem | undefined> {
+		let pageNo = 1;
+		let totalPage = 1;
+
+		do {
+			const response = await this.getJson<DisclosureListResponse>('/list.json', {
+				crtfc_key: apiKey,
+				bgn_de: receiptDate,
+				end_de: receiptDate,
+				pblntf_ty: 'A',
+				page_no: String(pageNo),
+				page_count: '100',
+			});
+
+			ensureSuccess(response);
+
+			const item = response.list?.find(
+				(disclosure) => disclosure.rcept_no === receiptNo,
+			);
+			if (item !== undefined) {
+				return item;
+			}
+
+			totalPage = normalizePageCount(response.total_page);
+			pageNo += 1;
+		} while (pageNo <= totalPage);
+
+		return undefined;
 	}
 
 	async getFinancialStatementItems(
@@ -120,6 +148,19 @@ function ensureSuccess(response: DartApiResponse): void {
 	if (response.status !== '000') {
 		throw new Error(response.message || 'DART 데이터를 조회할 수 없습니다.');
 	}
+}
+
+function normalizePageCount(value: number | string | undefined): number {
+	if (typeof value === 'number') {
+		return value;
+	}
+
+	if (typeof value === 'string') {
+		const parsed = Number.parseInt(value, 10);
+		return Number.isFinite(parsed) ? parsed : 1;
+	}
+
+	return 1;
 }
 
 function parseReportInfo(reportName: string): ParsedReportInfo | null {

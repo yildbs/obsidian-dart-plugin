@@ -8,9 +8,31 @@ import {
 	StatementDivision,
 } from '../types';
 
-const ACCOUNT_CANDIDATES: Record<string, string[]> = {
-	매출: ['매출액', '수익', '영업수익', '매출'],
-	영업이익: ['영업이익', '영업이익(손실)'],
+interface AccountMatcher {
+	accountIds: string[];
+	names: string[];
+	matchesName: (normalizedAccountName: string) => boolean;
+}
+
+const ACCOUNT_MATCHERS: Record<string, AccountMatcher> = {
+	매출: {
+		accountIds: [
+			'ifrs-full_Revenue',
+			'ifrs-full_RevenueFromContractsWithCustomers',
+			'ifrs-full_SalesRevenue',
+		],
+		names: ['매출액', '수익', '영업수익', '매출'],
+		matchesName: (accountName) =>
+			accountName === '매출' ||
+			accountName.includes('매출액') ||
+			accountName.includes('수익') ||
+			accountName.includes('영업수익'),
+	},
+	영업이익: {
+		accountIds: ['dart_OperatingIncomeLoss', 'ifrs-full_ProfitLossFromOperatingActivities'],
+		names: ['영업이익', '영업이익(손실)'],
+		matchesName: (accountName) => accountName.includes('영업이익'),
+	},
 };
 
 const REPORT_QUARTER_LABELS: Record<Exclude<ReportKind, 'annual'>, string> = {
@@ -26,9 +48,9 @@ export function buildIncomeStatementTable(
 	unit: AmountUnit,
 ): IncomeStatementTable | null {
 	const columns = buildColumns(meta);
-	const rows = Object.entries(ACCOUNT_CANDIDATES).map(([label, candidates]) => {
-		const cisItem = findStatementItem(items, 'CIS', candidates);
-		const isItem = findStatementItem(items, 'IS', candidates);
+	const rows = Object.entries(ACCOUNT_MATCHERS).map(([label, matcher]) => {
+		const cisItem = findStatementItem(items, 'CIS', matcher);
+		const isItem = findStatementItem(items, 'IS', matcher);
 		const values = Object.fromEntries(
 			columns.map((column) => [
 				column,
@@ -85,17 +107,19 @@ function buildColumns(meta: DartDisclosureMeta): string[] {
 function findStatementItem(
 	items: DartFinancialStatementItem[],
 	statementDivision: StatementDivision,
-	candidates: string[],
+	matcher: AccountMatcher,
 ): DartFinancialStatementItem | undefined {
-	return items.find((item) => {
-		if (item.sj_div !== statementDivision) {
-			return false;
-		}
-		const accountName = normalizeAccountName(item.account_nm ?? '');
-		return candidates.some(
-			(candidate) => normalizeAccountName(candidate) === accountName,
-		);
-	});
+	const statementItems = items.filter((item) => item.sj_div === statementDivision);
+	return (
+		statementItems.find((item) => matcher.accountIds.includes(item.account_id ?? '')) ??
+		statementItems.find((item) => {
+			const accountName = normalizeAccountName(item.account_nm ?? '');
+			return matcher.names.some(
+				(name) => normalizeAccountName(name) === accountName,
+			);
+		}) ??
+		statementItems.find((item) => matcher.matchesName(normalizeAccountName(item.account_nm ?? '')))
+	);
 }
 
 function getAmountForColumn(
