@@ -97,6 +97,9 @@ export default class DartPlugin extends Plugin {
 			defaultUnit: this.settings.defaultUnit,
 			defaultStartDate: this.settings.reportSearchStartDate,
 			defaultEndDate: this.settings.reportSearchEndDate,
+			defaultIncludeUrl: this.settings.reportSearchIncludeUrl,
+			defaultIncludeFinancialStatement:
+				this.settings.reportSearchIncludeFinancialStatement,
 			loadCompanyCache: async () => await this.corpCodeStore.load(),
 			refreshCompanyCache: async (apiKey) => {
 				this.settings.apiKey = apiKey;
@@ -198,6 +201,9 @@ export default class DartPlugin extends Plugin {
 		this.settings.defaultUnit = request.unit;
 		this.settings.reportSearchStartDate = request.startDate;
 		this.settings.reportSearchEndDate = request.endDate;
+		this.settings.reportSearchIncludeUrl = request.includeUrl;
+		this.settings.reportSearchIncludeFinancialStatement =
+			request.includeFinancialStatement;
 		await this.saveSettings();
 
 		new Notice('Dart 보고서를 삽입하고 있습니다.');

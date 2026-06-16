@@ -12,6 +12,8 @@ interface ReportSearchModalOptions {
 	defaultUnit: AmountUnit;
 	defaultStartDate: string;
 	defaultEndDate: string;
+	defaultIncludeUrl: boolean;
+	defaultIncludeFinancialStatement: boolean;
 	loadCompanyCache: () => Promise<CorpCodeCache | null>;
 	refreshCompanyCache: (apiKey: string) => Promise<CorpCodeCache>;
 	findCompanyCandidates: (companyName: string) => Promise<DartCompany[]>;
@@ -32,8 +34,8 @@ export class ReportSearchModal extends Modal {
 	private companyName = '';
 	private startDate: string;
 	private endDate: string;
-	private includeUrl = true;
-	private includeFinancialStatement = false;
+	private includeUrl: boolean;
+	private includeFinancialStatement: boolean;
 	private unit: AmountUnit;
 	private companyCacheUpdatedAt: string | null = null;
 	private companyCandidates: DartCompany[] = [];
@@ -54,6 +56,8 @@ export class ReportSearchModal extends Modal {
 		this.apiKey = options.apiKey;
 		this.startDate = options.defaultStartDate;
 		this.endDate = options.defaultEndDate;
+		this.includeUrl = options.defaultIncludeUrl;
+		this.includeFinancialStatement = options.defaultIncludeFinancialStatement;
 		this.unit = options.defaultUnit;
 		this.loadCompanyCache = options.loadCompanyCache;
 		this.refreshCompanyCache = options.refreshCompanyCache;

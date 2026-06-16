@@ -7,6 +7,8 @@ export interface DartPluginSettings {
 	defaultUnit: AmountUnit;
 	reportSearchStartDate: string;
 	reportSearchEndDate: string;
+	reportSearchIncludeUrl: boolean;
+	reportSearchIncludeFinancialStatement: boolean;
 }
 
 export const DEFAULT_SETTINGS: DartPluginSettings = {
@@ -14,6 +16,8 @@ export const DEFAULT_SETTINGS: DartPluginSettings = {
 	defaultUnit: '억',
 	reportSearchStartDate: getDateOffsetByYears(new Date(), -1),
 	reportSearchEndDate: formatDateInput(new Date()),
+	reportSearchIncludeUrl: true,
+	reportSearchIncludeFinancialStatement: false,
 };
 
 export class DartSettingTab extends PluginSettingTab {
