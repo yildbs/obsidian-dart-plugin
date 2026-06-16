@@ -1,20 +1,30 @@
 import { MarkdownView, Notice, Plugin } from 'obsidian';
+import { CorpCodeStore, findCompaniesByName } from './corpCodeStore';
 import { DartClient } from './dartClient';
 import { DartExtractModal } from './dartModal';
 import {
 	buildIncomeStatementTable,
 	getFsDivisionForExtractType,
 } from './extractors/incomeStatementExtractor';
+import { FeatureSelectModal } from './featureSelectModal';
 import {
 	buildIncomeStatementMarkdown,
 	mergeMarkdownSections,
 } from './formatters/markdownTableBuilder';
+import { buildReportMarkdownLink } from './formatters/reportLinkFormatter';
+import { ReportSearchModal } from './reportSearchModal';
 import {
 	DartPluginSettings,
 	DartSettingTab,
 	DEFAULT_SETTINGS,
 } from './settings';
-import { DartExtractRequest, ExtractType } from './types';
+import {
+	DartDisclosureMeta,
+	DartExtractRequest,
+	DartReportSearchRequest,
+	DartReportSearchResult,
+	ExtractType,
+} from './types';
 
 const EXTRACT_TITLES: Record<ExtractType, string> = {
 	consolidated_comprehensive_income: '연결포괄손익계산서',
@@ -24,19 +34,24 @@ const EXTRACT_TITLES: Record<ExtractType, string> = {
 export default class DartPlugin extends Plugin {
 	settings!: DartPluginSettings;
 	private readonly dartClient = new DartClient();
+	private corpCodeStore!: CorpCodeStore;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		this.corpCodeStore = new CorpCodeStore(
+			this.app.vault,
+			this.manifest.dir ?? this.manifest.id,
+		);
 
-		this.addRibbonIcon('table', 'Dart 데이터 추출', () => {
-			this.openExtractModal();
+		this.addRibbonIcon('table', 'Dart', () => {
+			this.openFeatureSelectModal();
 		});
 
 		this.addCommand({
-			id: 'open-dart-extract-modal',
-			name: 'Dart 데이터 추출',
+			id: 'open-dart-feature-select',
+			name: 'Dart 기능 선택',
 			callback: () => {
-				this.openExtractModal();
+				this.openFeatureSelectModal();
 			},
 		});
 
@@ -55,12 +70,61 @@ export default class DartPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	private openFeatureSelectModal(): void {
+		new FeatureSelectModal(this.app, {
+			onOpenReportSearch: () => {
+				this.openReportSearchModal();
+			},
+			onOpenFinancialExtract: () => {
+				this.openExtractModal();
+			},
+		}).open();
+	}
+
 	private openExtractModal(): void {
 		new DartExtractModal(this.app, {
 			apiKey: this.settings.apiKey,
 			defaultUnit: this.settings.defaultUnit,
 			onSubmit: async (request) => {
 				await this.runExtract(request);
+			},
+		}).open();
+	}
+
+	private openReportSearchModal(): void {
+		new ReportSearchModal(this.app, {
+			apiKey: this.settings.apiKey,
+			defaultUnit: this.settings.defaultUnit,
+			defaultStartDate: this.settings.reportSearchStartDate,
+			defaultEndDate: this.settings.reportSearchEndDate,
+			loadCompanyCache: async () => await this.corpCodeStore.load(),
+			refreshCompanyCache: async (apiKey) => {
+				this.settings.apiKey = apiKey;
+				await this.saveSettings();
+				const companies = await this.dartClient.downloadCompanies(apiKey);
+				return await this.corpCodeStore.save(companies);
+			},
+			findCompanyCandidates: async (companyName) => {
+				const cache = await this.corpCodeStore.load();
+				if (cache === null) {
+					return [];
+				}
+				return findCompaniesByName(cache.companies, companyName);
+			},
+			onSearch: async (apiKey, corpCode, startDate, endDate) => {
+				this.settings.apiKey = apiKey;
+				this.settings.reportSearchStartDate = startDate;
+				this.settings.reportSearchEndDate = endDate;
+				await this.saveSettings();
+				return await this.dartClient.searchPeriodicReports(
+					apiKey,
+					corpCode,
+					startDate,
+					endDate,
+				);
+			},
+			onInsert: async (request, reports) => {
+				await this.runReportInsert(request, reports);
 			},
 		}).open();
 	}
@@ -119,6 +183,91 @@ export default class DartPlugin extends Plugin {
 			new Notice(getErrorMessage(error));
 		}
 	}
+
+	private async runReportInsert(
+		request: DartReportSearchRequest,
+		reports: DartReportSearchResult[],
+	): Promise<void> {
+		const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (markdownView === null) {
+			new Notice('테이블을 삽입할 노트를 열어야 합니다.');
+			return;
+		}
+
+		this.settings.apiKey = request.apiKey;
+		this.settings.defaultUnit = request.unit;
+		this.settings.reportSearchStartDate = request.startDate;
+		this.settings.reportSearchEndDate = request.endDate;
+		await this.saveSettings();
+
+		new Notice('Dart 보고서를 삽입하고 있습니다.');
+
+		const sections: string[] = [];
+		const orderedReports = [...reports].sort((a, b) =>
+			a.receiptDate.localeCompare(b.receiptDate),
+		);
+
+		for (const report of orderedReports) {
+			const reportParts: string[] = [];
+			if (request.includeUrl) {
+				reportParts.push(buildReportMarkdownLink(report));
+			}
+			if (request.includeFinancialStatement) {
+				const tableMarkdown = await this.buildReportFinancialStatementMarkdown(
+					request,
+					report,
+				);
+				if (tableMarkdown !== '') {
+					reportParts.push(tableMarkdown);
+				}
+			}
+			if (reportParts.length > 0) {
+				sections.push(reportParts.join('\n\n'));
+			}
+		}
+
+		const markdown = mergeMarkdownSections(sections);
+		if (markdown === '') {
+			new Notice('삽입할 보고서 내용이 없습니다.');
+			return;
+		}
+
+		markdownView.editor.replaceSelection(markdown);
+		new Notice('Dart 보고서를 삽입했습니다.');
+	}
+
+	private async buildReportFinancialStatementMarkdown(
+		request: DartReportSearchRequest,
+		report: DartReportSearchResult,
+	): Promise<string> {
+		const meta = toDisclosureMeta(report);
+		const items = await this.dartClient.getFinancialStatementItems(
+			request.apiKey,
+			meta,
+			'CFS',
+		);
+		const table = buildIncomeStatementTable(
+			EXTRACT_TITLES.consolidated_comprehensive_income,
+			meta,
+			items,
+			request.unit,
+		);
+
+		return table === null ? '' : buildIncomeStatementMarkdown(table);
+	}
+}
+
+function toDisclosureMeta(report: DartReportSearchResult): DartDisclosureMeta {
+	return {
+		corpCode: report.corpCode,
+		corpName: report.corpName,
+		reportName: report.reportName,
+		receiptNo: report.receiptNo,
+		receiptDate: report.receiptDate,
+		businessYear: report.businessYear,
+		reportCode: report.reportCode,
+		reportKind: report.reportKind,
+	};
 }
 
 function getErrorMessage(error: unknown): string {

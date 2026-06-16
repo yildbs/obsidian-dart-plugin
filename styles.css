@@ -2,6 +2,12 @@
 	align-items: flex-start;
 }
 
+.dart-plugin-modal {
+	max-height: 85vh;
+	overflow-y: auto;
+	padding-right: 8px;
+}
+
 .dart-plugin-modal .setting-item-control {
 	min-width: 260px;
 }
@@ -31,4 +37,81 @@
 .dart-plugin-checkbox-desc {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+}
+
+.dart-plugin-result-toolbar {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.dart-plugin-empty {
+	color: var(--text-muted);
+	padding: 8px 0;
+}
+
+.dart-plugin-result-list {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	max-height: 300px;
+	overflow: auto;
+}
+
+.dart-plugin-candidate-list {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	max-height: 160px;
+	overflow: auto;
+}
+
+.dart-plugin-candidate-row {
+	align-items: center;
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: grid;
+	gap: 8px;
+	grid-template-columns: auto minmax(100px, 1fr) 80px 90px;
+	padding: 8px;
+}
+
+.dart-plugin-candidate-row:last-child {
+	border-bottom: 0;
+}
+
+.dart-plugin-candidate-company,
+.dart-plugin-candidate-stock,
+.dart-plugin-candidate-code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dart-plugin-candidate-stock,
+.dart-plugin-candidate-code {
+	color: var(--text-muted);
+}
+
+.dart-plugin-report-row {
+	align-items: center;
+	border-bottom: 1px solid var(--background-modifier-border);
+	display: grid;
+	gap: 8px;
+	grid-template-columns: auto 90px minmax(80px, 1fr) 96px;
+	padding: 8px;
+}
+
+.dart-plugin-report-row:last-child {
+	border-bottom: 0;
+}
+
+.dart-plugin-report-date,
+.dart-plugin-report-company,
+.dart-plugin-report-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dart-plugin-report-date,
+.dart-plugin-report-name {
+	color: var(--text-muted);
 }

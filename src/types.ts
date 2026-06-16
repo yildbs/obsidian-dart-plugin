@@ -18,8 +18,43 @@ export interface DartExtractRequest {
 	unit: AmountUnit;
 }
 
+export interface DartReportSearchRequest {
+	apiKey: string;
+	companyName: string;
+	corpCode: string;
+	startDate: string;
+	endDate: string;
+	includeUrl: boolean;
+	includeFinancialStatement: boolean;
+	unit: AmountUnit;
+}
+
+export interface DartReportSearchResult {
+	corpCode: string;
+	corpName: string;
+	reportName: string;
+	reportKind: ReportKind;
+	receiptNo: string;
+	receiptDate: string;
+	businessYear: string;
+	reportCode: string;
+}
+
+export interface DartCompany {
+	corpCode: string;
+	corpName: string;
+	stockCode: string;
+	modifyDate: string;
+}
+
+export interface CorpCodeCache {
+	updatedAt: string;
+	companies: DartCompany[];
+}
+
 export interface DartDisclosureMeta {
 	corpCode: string;
+	corpName?: string;
 	reportName: string;
 	receiptNo: string;
 	receiptDate: string;

@@ -5,11 +5,15 @@ import { AmountUnit } from './types';
 export interface DartPluginSettings {
 	apiKey: string;
 	defaultUnit: AmountUnit;
+	reportSearchStartDate: string;
+	reportSearchEndDate: string;
 }
 
 export const DEFAULT_SETTINGS: DartPluginSettings = {
 	apiKey: '',
 	defaultUnit: '억',
+	reportSearchStartDate: getDateOffsetByYears(new Date(), -1),
+	reportSearchEndDate: formatDateInput(new Date()),
 };
 
 export class DartSettingTab extends PluginSettingTab {
@@ -54,4 +58,17 @@ export class DartSettingTab extends PluginSettingTab {
 					});
 			});
 	}
+}
+
+function getDateOffsetByYears(date: Date, years: number): string {
+	const nextDate = new Date(date);
+	nextDate.setFullYear(nextDate.getFullYear() + years);
+	return formatDateInput(nextDate);
+}
+
+function formatDateInput(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
 }

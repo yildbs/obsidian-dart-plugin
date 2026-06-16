@@ -1,7 +1,10 @@
+import { unzipSync, strFromU8 } from 'fflate';
 import { requestUrl } from 'obsidian';
 import {
+	DartCompany,
 	DartDisclosureMeta,
 	DartFinancialStatementItem,
+	DartReportSearchResult,
 	FsDivision,
 	ReportKind,
 } from './types';
@@ -22,6 +25,7 @@ interface DisclosureListResponse extends DartApiResponse {
 
 interface DisclosureListItem {
 	corp_code: string;
+	corp_name: string;
 	report_nm: string;
 	rcept_no: string;
 	rcept_dt: string;
@@ -59,6 +63,7 @@ export class DartClient {
 
 		return {
 			corpCode: item.corp_code,
+			corpName: item.corp_name,
 			reportName: item.report_nm,
 			receiptNo: item.rcept_no,
 			receiptDate: item.rcept_dt,
@@ -68,38 +73,82 @@ export class DartClient {
 		};
 	}
 
+	async searchPeriodicReports(
+		apiKey: string,
+		corpCode: string,
+		startDate: string,
+		endDate: string,
+	): Promise<DartReportSearchResult[]> {
+		const disclosures = await this.getDisclosurePages(apiKey, {
+			corp_code: corpCode,
+			bgn_de: normalizeDate(startDate),
+			end_de: normalizeDate(endDate),
+			pblntf_ty: 'A',
+			page_count: '100',
+		});
+
+		return disclosures
+			.map(toReportSearchResult)
+			.filter((report): report is DartReportSearchResult => report !== null)
+			.sort((a, b) => b.receiptDate.localeCompare(a.receiptDate));
+	}
+
+	async downloadCompanies(apiKey: string): Promise<DartCompany[]> {
+		const url = new URL(`${DART_API_BASE}/corpCode.xml`);
+		url.searchParams.set('crtfc_key', apiKey);
+
+		const response = await requestUrl({
+			url: url.toString(),
+			method: 'GET',
+		});
+
+		const files = unzipSync(new Uint8Array(response.arrayBuffer));
+		const xmlFile = files['CORPCODE.xml'] ?? files['corpCode.xml'];
+		if (xmlFile === undefined) {
+			throw new Error('기업 리스트 파일을 찾을 수 없습니다.');
+		}
+
+		return parseCorpCodeXml(strFromU8(xmlFile));
+	}
+
 	private async findDisclosureInPages(
 		apiKey: string,
 		receiptNo: string,
 		receiptDate: string,
 	): Promise<DisclosureListItem | undefined> {
+		const disclosures = await this.getDisclosurePages(apiKey, {
+			bgn_de: receiptDate,
+			end_de: receiptDate,
+			pblntf_ty: 'A',
+			page_count: '100',
+		});
+
+		return disclosures.find((disclosure) => disclosure.rcept_no === receiptNo);
+	}
+
+	private async getDisclosurePages(
+		apiKey: string,
+		params: Record<string, string>,
+	): Promise<DisclosureListItem[]> {
 		let pageNo = 1;
 		let totalPage = 1;
+		const disclosures: DisclosureListItem[] = [];
 
 		do {
 			const response = await this.getJson<DisclosureListResponse>('/list.json', {
 				crtfc_key: apiKey,
-				bgn_de: receiptDate,
-				end_de: receiptDate,
-				pblntf_ty: 'A',
+				...params,
 				page_no: String(pageNo),
-				page_count: '100',
 			});
 
 			ensureSuccess(response);
-
-			const item = response.list?.find(
-				(disclosure) => disclosure.rcept_no === receiptNo,
-			);
-			if (item !== undefined) {
-				return item;
-			}
+			disclosures.push(...(response.list ?? []));
 
 			totalPage = normalizePageCount(response.total_page);
 			pageNo += 1;
 		} while (pageNo <= totalPage);
 
-		return undefined;
+		return disclosures;
 	}
 
 	async getFinancialStatementItems(
@@ -204,6 +253,56 @@ function parseReportInfo(reportName: string): ParsedReportInfo | null {
 	}
 
 	return null;
+}
+
+function toReportSearchResult(
+	item: DisclosureListItem,
+): DartReportSearchResult | null {
+	const reportInfo = parseReportInfo(item.report_nm);
+	if (reportInfo === null) {
+		return null;
+	}
+
+	return {
+		corpCode: item.corp_code,
+		corpName: item.corp_name,
+		reportName: item.report_nm,
+		reportKind: reportInfo.reportKind,
+		receiptNo: item.rcept_no,
+		receiptDate: item.rcept_dt,
+		businessYear: reportInfo.businessYear,
+		reportCode: reportInfo.reportCode,
+	};
+}
+
+function normalizeDate(value: string): string {
+	return value.replaceAll(/[^0-9]/g, '');
+}
+
+function parseCorpCodeXml(xml: string): DartCompany[] {
+	return [...xml.matchAll(/<list>([\s\S]*?)<\/list>/g)].map((match) => {
+		const listXml = match[1] ?? '';
+		return {
+			corpCode: getXmlText(listXml, 'corp_code'),
+			corpName: getXmlText(listXml, 'corp_name'),
+			stockCode: getXmlText(listXml, 'stock_code'),
+			modifyDate: getXmlText(listXml, 'modify_date'),
+		};
+	});
+}
+
+function getXmlText(xml: string, tagName: string): string {
+	const match = xml.match(new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`));
+	return decodeXmlText(match?.[1]?.trim() ?? '');
+}
+
+function decodeXmlText(value: string): string {
+	return value
+		.replaceAll('&amp;', '&')
+		.replaceAll('&lt;', '<')
+		.replaceAll('&gt;', '>')
+		.replaceAll('&quot;', '"')
+		.replaceAll('&apos;', "'");
 }
 
 function parseBusinessYear(reportName: string): string | null {
