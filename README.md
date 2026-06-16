@@ -1,92 +1,48 @@
-# Obsidian Sample Plugin
+# obsidian-dart-plugin
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Obsidian에서 DART 공시 URL 또는 접수번호를 입력해 포괄손익계산서 표를 현재 노트의 커서 위치에 삽입하는 플러그인입니다.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## 지원 범위
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+- 연결포괄손익계산서
+- 포괄손익계산서
+- 사업보고서, 반기보고서, 1분기보고서, 3분기보고서
+- 금액 단위: 억원, 조원
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+사업보고서는 최근 3개년을 표시합니다.
 
-## First time developing plugins?
+분기와 반기 보고서는 보고서에 있는 형식에 맞춰 해당 분기와 누적 금액을 함께 표시합니다.
 
-Quick starting guide for new plugin devs:
-
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
-
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+```markdown
+| 구분 | 2026 2Q | 2026 2Q 누적 | 2025 2Q | 2025 2Q 누적 |
+| ---- | ------: | -----------: | ------: | -----------: |
+| 매출 | 620 | 1,180 | 580 | 1,090 |
+| 영업이익 | 42 | 77 | 35 | 68 |
 ```
 
-If you have multiple URLs, you can also do:
+## 사용 방법
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
+1. Obsidian에서 노트를 엽니다.
+2. 왼쪽 Ribbon의 DART 데이터 추출 버튼을 선택합니다.
+3. DART API Key와 공시 URL 또는 14자리 접수번호를 입력합니다.
+4. 연결 또는 별도 포괄손익계산서를 선택합니다.
+5. 금액 단위를 선택하고 **실행**을 누릅니다.
+
+## DART API Key
+
+DART API Key는 Obsidian 플러그인 데이터에 로컬로 저장됩니다. 플러그인은 DART Open API 조회를 위해서만 API Key를 사용합니다.
+
+## 개발
+
+```bash
+npm install
+npm run dev
 ```
 
-## API Documentation
+프로덕션 빌드:
 
-See https://docs.obsidian.md
+```bash
+npm run build
+```
+
+릴리스 아티팩트는 플러그인 루트의 `main.js`, `manifest.json`, `styles.css`입니다.

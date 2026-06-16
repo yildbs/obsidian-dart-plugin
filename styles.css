@@ -1,8 +1,34 @@
-/*
+.dart-plugin-modal .setting-item {
+	align-items: flex-start;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.dart-plugin-modal .setting-item-control {
+	min-width: 260px;
+}
 
-If your plugin does not need CSS, delete this file.
+.dart-plugin-checkboxes {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+}
 
-*/
+.dart-plugin-checkbox-row {
+	align-items: flex-start;
+	display: flex;
+	gap: 8px;
+	line-height: 1.4;
+}
+
+.dart-plugin-checkbox-row input {
+	margin-top: 3px;
+}
+
+.dart-plugin-checkbox-label {
+	font-weight: 600;
+}
+
+.dart-plugin-checkbox-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}
