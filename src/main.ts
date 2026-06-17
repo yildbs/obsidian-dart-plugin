@@ -247,19 +247,34 @@ export default class DartPlugin extends Plugin {
 		report: DartReportSearchResult,
 	): Promise<string> {
 		const meta = toDisclosureMeta(report);
-		const items = await this.dartClient.getFinancialStatementItems(
+		const consolidatedItems = await this.dartClient.getFinancialStatementItems(
 			request.apiKey,
 			meta,
 			'CFS',
 		);
-		const table = buildIncomeStatementTable(
+		const consolidatedTable = buildIncomeStatementTable(
 			EXTRACT_TITLES.consolidated_comprehensive_income,
 			meta,
-			items,
+			consolidatedItems,
+			request.unit,
+		);
+		if (consolidatedTable !== null) {
+			return buildIncomeStatementMarkdown(consolidatedTable);
+		}
+
+		const separateItems = await this.dartClient.getFinancialStatementItems(
+			request.apiKey,
+			meta,
+			'OFS',
+		);
+		const separateTable = buildIncomeStatementTable(
+			EXTRACT_TITLES.separate_comprehensive_income,
+			meta,
+			separateItems,
 			request.unit,
 		);
 
-		return table === null ? '' : buildIncomeStatementMarkdown(table);
+		return separateTable === null ? '' : buildIncomeStatementMarkdown(separateTable);
 	}
 }
 
