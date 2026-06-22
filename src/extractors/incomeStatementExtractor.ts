@@ -9,13 +9,15 @@ import {
 } from '../types';
 
 interface AccountMatcher {
+	getLabel: (meta: DartDisclosureMeta) => string;
 	accountIds: string[];
 	names: string[];
 	matchesName: (normalizedAccountName: string) => boolean;
 }
 
-const ACCOUNT_MATCHERS: Record<string, AccountMatcher> = {
-	매출: {
+const ACCOUNT_MATCHERS: AccountMatcher[] = [
+	{
+		getLabel: () => '매출',
 		accountIds: [
 			'ifrs-full_Revenue',
 			'ifrs-full_RevenueFromContractsWithCustomers',
@@ -28,12 +30,29 @@ const ACCOUNT_MATCHERS: Record<string, AccountMatcher> = {
 			accountName.includes('수익') ||
 			accountName.includes('영업수익'),
 	},
-	영업이익: {
+	{
+		getLabel: () => '영업이익',
 		accountIds: ['dart_OperatingIncomeLoss', 'ifrs-full_ProfitLossFromOperatingActivities'],
 		names: ['영업이익', '영업이익(손실)'],
 		matchesName: (accountName) => accountName.includes('영업이익'),
 	},
-};
+	{
+		getLabel: getNetIncomeLabel,
+		accountIds: ['ifrs-full_ProfitLoss'],
+		names: [
+			'당기순이익',
+			'당기순이익(손실)',
+			'반기순이익',
+			'반기순이익(손실)',
+			'분기순이익',
+			'분기순이익(손실)',
+		],
+		matchesName: (accountName) =>
+			accountName.includes('당기순이익') ||
+			accountName.includes('반기순이익') ||
+			accountName.includes('분기순이익'),
+	},
+];
 
 const REPORT_QUARTER_LABELS: Record<Exclude<ReportKind, 'annual'>, string> = {
 	q1: '1Q',
@@ -48,7 +67,7 @@ export function buildIncomeStatementTable(
 	unit: AmountUnit,
 ): IncomeStatementTable | null {
 	const columns = buildColumns(meta);
-	const rows = Object.entries(ACCOUNT_MATCHERS).map(([label, matcher]) => {
+	const rows = ACCOUNT_MATCHERS.map((matcher) => {
 		const cisItem = findStatementItem(items, 'CIS', matcher);
 		const isItem = findStatementItem(items, 'IS', matcher);
 		const values = Object.fromEntries(
@@ -60,7 +79,7 @@ export function buildIncomeStatementTable(
 		const sourceStatement = getSourceStatement(cisItem, isItem, values, meta);
 
 		return {
-			label,
+			label: matcher.getLabel(meta),
 			values,
 			sourceStatement,
 		};
@@ -102,6 +121,16 @@ function buildColumns(meta: DartDisclosureMeta): string[] {
 		`${year - 1} ${quarter}`,
 		`${year - 1} ${quarter} 누적`,
 	];
+}
+
+function getNetIncomeLabel(meta: DartDisclosureMeta): string {
+	if (meta.reportKind === 'annual') {
+		return '당기순이익';
+	}
+	if (meta.reportKind === 'half') {
+		return '반기순이익';
+	}
+	return '분기순이익';
 }
 
 function findStatementItem(
