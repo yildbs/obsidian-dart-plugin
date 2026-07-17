@@ -623,7 +623,7 @@ function formatDateTime(value: string): string {
 
 function formatReceiptDateTime(report: DartDisclosureReport): string {
 	if (/^\d{8}$/.test(report.receiptDate)) {
-		const receiptDate = `${report.receiptDate.slice(0, 4)}.${report.receiptDate.slice(4, 6)}.${report.receiptDate.slice(6, 8)}`;
+		const receiptDate = `${report.receiptDate.slice(0, 4)}.${report.receiptDate.slice(4, 6)}.${report.receiptDate.slice(6, 8)} (${getWeekdayLabel(report.receiptDate)})`;
 		return report.receiptTime === undefined
 			? receiptDate
 			: `${receiptDate} ${report.receiptTime}`;
@@ -631,6 +631,14 @@ function formatReceiptDateTime(report: DartDisclosureReport): string {
 	return report.receiptTime === undefined
 		? report.receiptDate
 		: `${report.receiptDate} ${report.receiptTime}`;
+}
+
+function getWeekdayLabel(receiptDate: string): string {
+	const year = Number.parseInt(receiptDate.slice(0, 4), 10);
+	const month = Number.parseInt(receiptDate.slice(4, 6), 10);
+	const day = Number.parseInt(receiptDate.slice(6, 8), 10);
+	const date = new Date(year, month - 1, day);
+	return ['일', '월', '화', '수', '목', '금', '토'][date.getDay()] ?? '';
 }
 
 function getErrorMessage(error: unknown): string {
