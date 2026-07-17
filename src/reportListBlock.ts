@@ -275,7 +275,11 @@ async function refreshBlock(
 	refreshButton.disabled = true;
 	refreshButton.textContent = '갱신 중';
 	try {
-		block.reports = await options.refreshReports(block);
+		const receiptTimes = getReceiptTimesByReceiptNo(block.reports);
+		block.reports = (await options.refreshReports(block)).map((report) => ({
+			...report,
+			receiptTime: report.receiptTime ?? receiptTimes[report.receiptNo],
+		}));
 		block.updatedAt = new Date().toISOString();
 		await options.saveBlock(block);
 		renderBlock(options, block);
@@ -286,6 +290,16 @@ async function refreshBlock(
 		refreshButton.disabled = false;
 		refreshButton.textContent = 'Refresh';
 	}
+}
+
+function getReceiptTimesByReceiptNo(
+	reports: DartDisclosureReport[],
+): Record<string, string> {
+	return Object.fromEntries(
+		reports
+			.filter((report) => report.receiptTime !== undefined)
+			.map((report) => [report.receiptNo, report.receiptTime as string]),
+	);
 }
 
 async function fetchVisibleReportTimes(
