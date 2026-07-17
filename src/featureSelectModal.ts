@@ -3,16 +3,19 @@ import { App, Modal, Setting } from 'obsidian';
 interface FeatureSelectModalOptions {
 	onOpenReportSearch: () => void;
 	onOpenFinancialExtract: () => void;
+	onInsertReportList: () => void;
 }
 
 export class FeatureSelectModal extends Modal {
 	private readonly onOpenReportSearch: () => void;
 	private readonly onOpenFinancialExtract: () => void;
+	private readonly onInsertReportList: () => void;
 
 	constructor(app: App, options: FeatureSelectModalOptions) {
 		super(app);
 		this.onOpenReportSearch = options.onOpenReportSearch;
 		this.onOpenFinancialExtract = options.onOpenFinancialExtract;
+		this.onInsertReportList = options.onInsertReportList;
 	}
 
 	onOpen(): void {
@@ -20,6 +23,19 @@ export class FeatureSelectModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass('dart-plugin-modal');
 		contentEl.createEl('h2', { text: 'Dart 기능 선택' });
+
+		new Setting(contentEl)
+			.setName('Dart 보고서 리스트')
+			.setDesc('현재 노트의 기업에 대한 보고서 리스트 블럭을 삽입합니다.')
+			.addButton((button) => {
+				button
+					.setButtonText('삽입')
+					.setCta()
+					.onClick(() => {
+						this.close();
+						this.onInsertReportList();
+					});
+			});
 
 		new Setting(contentEl)
 			.setName('보고서 검색')

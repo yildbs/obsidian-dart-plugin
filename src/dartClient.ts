@@ -3,6 +3,7 @@ import { requestUrl } from 'obsidian';
 import {
 	DartCompany,
 	DartDisclosureMeta,
+	DartDisclosureReport,
 	DartFinancialStatementItem,
 	DartReportSearchResult,
 	FsDivision,
@@ -29,6 +30,7 @@ interface DisclosureListItem {
 	report_nm: string;
 	rcept_no: string;
 	rcept_dt: string;
+	flr_nm?: string;
 }
 
 interface FinancialStatementResponse extends DartApiResponse {
@@ -91,6 +93,27 @@ export class DartClient {
 			.map(toReportSearchResult)
 			.filter((report): report is DartReportSearchResult => report !== null)
 			.sort((a, b) => b.receiptDate.localeCompare(a.receiptDate));
+	}
+
+	async searchCompanyDisclosures(
+		apiKey: string,
+		corpCode: string,
+		startDate: string,
+		endDate: string,
+	): Promise<DartDisclosureReport[]> {
+		const disclosures = await this.getDisclosurePages(apiKey, {
+			corp_code: corpCode,
+			bgn_de: normalizeDate(startDate),
+			end_de: normalizeDate(endDate),
+			page_count: '100',
+		});
+
+		return disclosures.map(toDisclosureReport).sort((a, b) => {
+			const dateCompare = b.receiptDate.localeCompare(a.receiptDate);
+			return dateCompare === 0
+				? b.receiptNo.localeCompare(a.receiptNo)
+				: dateCompare;
+		});
 	}
 
 	async downloadCompanies(apiKey: string): Promise<DartCompany[]> {
@@ -272,6 +295,17 @@ function toReportSearchResult(
 		receiptDate: item.rcept_dt,
 		businessYear: reportInfo.businessYear,
 		reportCode: reportInfo.reportCode,
+	};
+}
+
+function toDisclosureReport(item: DisclosureListItem): DartDisclosureReport {
+	return {
+		corpCode: item.corp_code,
+		corpName: item.corp_name,
+		reportName: item.report_nm.trim(),
+		receiptNo: item.rcept_no,
+		receiptDate: item.rcept_dt,
+		filerName: item.flr_nm?.trim() ?? item.corp_name,
 	};
 }
 

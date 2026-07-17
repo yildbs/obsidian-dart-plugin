@@ -1,6 +1,11 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import DartPlugin from './main';
-import { AmountUnit } from './types';
+import {
+	AmountUnit,
+	DartReportListBlockState,
+	DartReportListPresetId,
+	DartReportListViewState,
+} from './types';
 
 export interface DartPluginSettings {
 	apiKey: string;
@@ -9,7 +14,29 @@ export interface DartPluginSettings {
 	reportSearchEndDate: string;
 	reportSearchIncludeUrl: boolean;
 	reportSearchIncludeFinancialStatement: boolean;
+	reportListBlocks: Record<string, DartReportListBlockState>;
 }
+
+export const DEFAULT_REPORT_LIST_PRESETS: DartReportListPresetId[] = [
+	'performance',
+	'periodic',
+	'material',
+	'ownership',
+	'issuance',
+	'shareholderReturn',
+	'governance',
+	'marketAction',
+	'audit',
+	'other',
+];
+
+export const DEFAULT_REPORT_LIST_VIEW_STATE: DartReportListViewState = {
+	searchText: '',
+	enabledPresetIds: DEFAULT_REPORT_LIST_PRESETS,
+	includeCorrections: true,
+	sortKey: 'receiptDate',
+	sortDirection: 'desc',
+};
 
 export const DEFAULT_SETTINGS: DartPluginSettings = {
 	apiKey: '',
@@ -18,6 +45,7 @@ export const DEFAULT_SETTINGS: DartPluginSettings = {
 	reportSearchEndDate: formatDateInput(new Date()),
 	reportSearchIncludeUrl: true,
 	reportSearchIncludeFinancialStatement: false,
+	reportListBlocks: {},
 };
 
 export class DartSettingTab extends PluginSettingTab {

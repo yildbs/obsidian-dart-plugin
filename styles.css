@@ -115,3 +115,94 @@
 .dart-plugin-report-name {
 	color: var(--text-muted);
 }
+
+.dart-report-list {
+	overflow-x: auto;
+}
+
+.dart-report-list h4 {
+	margin: 0 0 8px;
+}
+
+.dart-report-list-summary {
+	color: var(--text-muted);
+	display: flex;
+	flex-wrap: wrap;
+	font-size: var(--font-ui-small);
+	gap: 6px 16px;
+	margin-bottom: 10px;
+}
+
+.dart-report-list-controls {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.dart-report-list-controls input[type='date'] {
+	width: 140px;
+}
+
+.dart-report-list-controls input[type='search'] {
+	min-width: 180px;
+	width: min(260px, 100%);
+}
+
+.dart-report-list-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 12px;
+	margin-bottom: 10px;
+}
+
+.dart-report-list-filter {
+	align-items: center;
+	display: inline-flex;
+	font-size: var(--font-ui-small);
+	gap: 4px;
+	white-space: nowrap;
+}
+
+.dart-report-list-count {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: 6px;
+}
+
+.dart-report-list-empty {
+	color: var(--text-muted);
+	padding: 8px 0;
+}
+
+.dart-report-list-table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.dart-report-list-table th,
+.dart-report-list-table td {
+	border: 1px solid var(--background-modifier-border);
+	padding: 6px 8px;
+	vertical-align: top;
+}
+
+.dart-report-list-table th {
+	background: var(--background-secondary);
+	white-space: nowrap;
+}
+
+.dart-report-list-sort-button {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	color: var(--text-normal);
+	font: inherit;
+	height: auto;
+	padding: 0;
+}
+
+.dart-report-list-nowrap {
+	white-space: nowrap;
+}

@@ -40,6 +40,51 @@ export interface DartReportSearchResult {
 	reportCode: string;
 }
 
+export type DartReportListPresetId =
+	| 'performance'
+	| 'periodic'
+	| 'material'
+	| 'ownership'
+	| 'issuance'
+	| 'shareholderReturn'
+	| 'governance'
+	| 'marketAction'
+	| 'audit'
+	| 'other';
+
+export type DartReportListSortKey = 'receiptDate' | 'reportName' | 'filerName';
+
+export type DartReportListSortDirection = 'asc' | 'desc';
+
+export interface DartDisclosureReport {
+	corpCode: string;
+	corpName: string;
+	reportName: string;
+	receiptNo: string;
+	receiptDate: string;
+	filerName: string;
+}
+
+export interface DartReportListViewState {
+	searchText: string;
+	enabledPresetIds: DartReportListPresetId[];
+	includeCorrections: boolean;
+	sortKey: DartReportListSortKey;
+	sortDirection: DartReportListSortDirection;
+}
+
+export interface DartReportListBlockState {
+	guid: string;
+	corpCode: string;
+	corpName: string;
+	stockCode: string;
+	startDate: string;
+	endDate: string;
+	updatedAt: string | null;
+	reports: DartDisclosureReport[];
+	view: DartReportListViewState;
+}
+
 export interface DartCompany {
 	corpCode: string;
 	corpName: string;
