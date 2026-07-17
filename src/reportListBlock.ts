@@ -15,6 +15,10 @@ interface RenderReportListBlockOptions {
 	refreshReports: (
 		block: DartReportListBlockState,
 	) => Promise<DartDisclosureReport[]>;
+	fetchUploadTimes: (
+		block: DartReportListBlockState,
+		reports: DartDisclosureReport[],
+	) => Promise<Record<string, string>>;
 }
 
 interface ReportPreset {
@@ -142,7 +146,7 @@ const REPORT_PRESETS: ReportPreset[] = [
 ];
 
 const SORT_LABELS: Record<DartReportListSortKey, string> = {
-	receiptDate: '접수일',
+	receiptDate: '접수일시',
 	reportName: '보고서명',
 	filerName: '제출인',
 };
@@ -261,6 +265,11 @@ function renderControls(
 	refreshButton.addEventListener('click', () => {
 		void refreshBlock(options, block, refreshButton);
 	});
+
+	const timeButton = controlsEl.createEl('button', { text: '시간 가져오기' });
+	timeButton.addEventListener('click', () => {
+		void fetchVisibleReportTimes(options, block, timeButton);
+	});
 }
 
 async function refreshBlock(
@@ -268,20 +277,55 @@ async function refreshBlock(
 	block: DartReportListBlockState,
 	refreshButton: HTMLButtonElement,
 ): Promise<void> {
-		refreshButton.disabled = true;
-		refreshButton.textContent = '갱신 중';
-		try {
-			block.reports = await options.refreshReports(block);
-			block.updatedAt = new Date().toISOString();
-			await options.saveBlock(block);
-			renderBlock(options, block);
-			new Notice('Dart 보고서 리스트를 갱신했습니다.');
-		} catch (error) {
-			console.error('DART report list refresh failed', error);
-			new Notice(getErrorMessage(error));
-			refreshButton.disabled = false;
-			refreshButton.textContent = 'Refresh';
+	refreshButton.disabled = true;
+	refreshButton.textContent = '갱신 중';
+	try {
+		block.reports = await options.refreshReports(block);
+		block.updatedAt = new Date().toISOString();
+		await options.saveBlock(block);
+		renderBlock(options, block);
+		new Notice('Dart 보고서 리스트를 갱신했습니다.');
+	} catch (error) {
+		console.error('DART report list refresh failed', error);
+		new Notice(getErrorMessage(error));
+		refreshButton.disabled = false;
+		refreshButton.textContent = 'Refresh';
+	}
+}
+
+async function fetchVisibleReportTimes(
+	options: RenderReportListBlockOptions,
+	block: DartReportListBlockState,
+	timeButton: HTMLButtonElement,
+): Promise<void> {
+	const visibleReports = getVisibleReports(block);
+	if (visibleReports.length === 0) {
+		new Notice('시간을 가져올 보고서가 없습니다.');
+		return;
+	}
+
+	timeButton.disabled = true;
+	timeButton.textContent = '가져오는 중';
+	try {
+		const timesByReceiptNo = await options.fetchUploadTimes(block, visibleReports);
+		let updatedCount = 0;
+		for (const report of block.reports) {
+			const receiptTime = timesByReceiptNo[report.receiptNo];
+			if (receiptTime !== undefined && report.receiptTime !== receiptTime) {
+				report.receiptTime = receiptTime;
+				updatedCount += 1;
+			}
 		}
+
+		await options.saveBlock(block);
+		renderBlock(options, block);
+		new Notice(`${updatedCount.toLocaleString('ko-KR')}개 보고서 시간을 저장했습니다.`);
+	} catch (error) {
+		console.error('DART report time fetch failed', error);
+		new Notice(getErrorMessage(error));
+		timeButton.disabled = false;
+		timeButton.textContent = '시간 가져오기';
+	}
 }
 
 function renderPresetFilters(
@@ -353,14 +397,13 @@ function renderTable(
 	renderSortableHeader(options, block, headerRowEl, 'receiptDate');
 	renderSortableHeader(options, block, headerRowEl, 'reportName');
 	renderSortableHeader(options, block, headerRowEl, 'filerName');
-	headerRowEl.createEl('th', { text: '링크' });
 
 	const tbodyEl = tableEl.createEl('tbody');
 	for (const report of reports) {
 		const rowEl = tbodyEl.createEl('tr');
 		rowEl.createEl('td', {
 			cls: 'dart-report-list-nowrap',
-			text: formatReceiptDate(report.receiptDate),
+			text: formatReceiptDateTime(report),
 		});
 		const reportUrl = buildReportUrl(report.receiptNo);
 		const reportNameEl = rowEl.createEl('td');
@@ -387,16 +430,6 @@ function renderTable(
 			void copyReportUrl(reportUrl);
 		});
 		rowEl.createEl('td', { text: report.filerName });
-		rowEl
-			.createEl('td', { cls: 'dart-report-list-nowrap' })
-			.createEl('a', {
-				text: '열기',
-				href: reportUrl,
-				attr: {
-					target: '_blank',
-					rel: 'noopener',
-				},
-			});
 	}
 }
 
@@ -480,7 +513,7 @@ function getSortValue(
 	sortKey: DartReportListSortKey,
 ): string {
 	if (sortKey === 'receiptDate') {
-		return report.receiptDate;
+		return `${report.receiptDate}${report.receiptTime ?? ''}`;
 	}
 	if (sortKey === 'reportName') {
 		return report.reportName;
@@ -545,11 +578,16 @@ function formatDateTime(value: string): string {
 	return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-function formatReceiptDate(receiptDate: string): string {
-	if (/^\d{8}$/.test(receiptDate)) {
-		return `${receiptDate.slice(0, 4)}.${receiptDate.slice(4, 6)}.${receiptDate.slice(6, 8)}`;
+function formatReceiptDateTime(report: DartDisclosureReport): string {
+	if (/^\d{8}$/.test(report.receiptDate)) {
+		const receiptDate = `${report.receiptDate.slice(0, 4)}.${report.receiptDate.slice(4, 6)}.${report.receiptDate.slice(6, 8)}`;
+		return report.receiptTime === undefined
+			? receiptDate
+			: `${receiptDate} ${report.receiptTime}`;
 	}
-	return receiptDate;
+	return report.receiptTime === undefined
+		? report.receiptDate
+		: `${report.receiptDate} ${report.receiptTime}`;
 }
 
 function getErrorMessage(error: unknown): string {

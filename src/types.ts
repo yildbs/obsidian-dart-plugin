@@ -62,6 +62,7 @@ export interface DartDisclosureReport {
 	reportName: string;
 	receiptNo: string;
 	receiptDate: string;
+	receiptTime?: string;
 	filerName: string;
 }
 

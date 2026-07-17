@@ -79,6 +79,11 @@ export default class DartPlugin extends Plugin {
 							block.startDate,
 							block.endDate,
 						),
+					fetchUploadTimes: async (block, reports) =>
+						await this.dartClient.fetchRecentDisclosureTimes(
+							block.corpCode,
+							reports.map((report) => report.receiptDate),
+						),
 				});
 			},
 		);

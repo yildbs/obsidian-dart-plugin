@@ -12,6 +12,8 @@ import {
 import { getReceiptDate } from './dartUrl';
 
 const DART_API_BASE = 'https://opendart.fss.or.kr/api';
+const DART_WEB_BASE = 'https://dart.fss.or.kr';
+const RECENT_DISCLOSURE_PAGE_SIZE = 100;
 
 interface DartApiResponse {
 	status: string;
@@ -41,6 +43,11 @@ interface ParsedReportInfo {
 	businessYear: string;
 	reportCode: string;
 	reportKind: ReportKind;
+}
+
+interface RecentDisclosureTimeRow {
+	receiptNo: string;
+	receiptTime: string;
 }
 
 export class DartClient {
@@ -114,6 +121,26 @@ export class DartClient {
 				? b.receiptNo.localeCompare(a.receiptNo)
 				: dateCompare;
 		});
+	}
+
+	async fetchRecentDisclosureTimes(
+		corpCode: string,
+		receiptDates: string[],
+	): Promise<Record<string, string>> {
+		const timesByReceiptNo: Record<string, string> = {};
+		const uniqueDates = [...new Set(receiptDates.map(normalizeDate))]
+			.filter((date) => /^\d{8}$/.test(date))
+			.sort();
+
+		for (const receiptDate of uniqueDates) {
+			const dayTimes = await this.fetchRecentDisclosureTimesForDate(
+				corpCode,
+				receiptDate,
+			);
+			Object.assign(timesByReceiptNo, dayTimes);
+		}
+
+		return timesByReceiptNo;
 	}
 
 	async downloadCompanies(apiKey: string): Promise<DartCompany[]> {
@@ -214,6 +241,65 @@ export class DartClient {
 
 		return response.json as T;
 	}
+
+	private async fetchRecentDisclosureTimesForDate(
+		corpCode: string,
+		receiptDate: string,
+	): Promise<Record<string, string>> {
+		let pageNo = 1;
+		let totalPage = 1;
+		const timesByReceiptNo: Record<string, string> = {};
+
+		do {
+			const html = await this.getRecentDisclosureHtml({
+				corpCode,
+				receiptDate,
+				pageNo,
+			});
+			const parsed = parseRecentDisclosureHtml(html);
+			for (const row of parsed.rows) {
+				timesByReceiptNo[row.receiptNo] = row.receiptTime;
+			}
+
+			totalPage = Math.max(
+				1,
+				Math.ceil(parsed.totalCount / RECENT_DISCLOSURE_PAGE_SIZE),
+			);
+			pageNo += 1;
+		} while (pageNo <= totalPage);
+
+		return timesByReceiptNo;
+	}
+
+	private async getRecentDisclosureHtml(params: {
+		corpCode: string;
+		receiptDate: string;
+		pageNo: number;
+	}): Promise<string> {
+		const body = new URLSearchParams({
+			currentPage: String(params.pageNo),
+			maxResults: String(RECENT_DISCLOSURE_PAGE_SIZE),
+			maxLinks: '10',
+			sort: 'time',
+			series: 'desc',
+			pageGrouping: '',
+			mdayCnt: '0',
+			selectDate: params.receiptDate,
+			textCrpCik: params.corpCode,
+		});
+
+		const response = await requestUrl({
+			url: `${DART_WEB_BASE}/dsac001/search.ax`,
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+				Referer: `${DART_WEB_BASE}/dsac001/mainAll.do`,
+			},
+			body: body.toString(),
+		});
+
+		return response.text;
+	}
 }
 
 function ensureSuccess(response: DartApiResponse): void {
@@ -311,6 +397,42 @@ function toDisclosureReport(item: DisclosureListItem): DartDisclosureReport {
 
 function normalizeDate(value: string): string {
 	return value.replaceAll(/[^0-9]/g, '');
+}
+
+function parseRecentDisclosureHtml(html: string): {
+	rows: RecentDisclosureTimeRow[];
+	totalCount: number;
+} {
+	const document = new DOMParser().parseFromString(html, 'text/html');
+	const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>('tbody tr'))
+		.map(parseRecentDisclosureRow)
+		.filter((row): row is RecentDisclosureTimeRow => row !== null);
+	const totalCount = Number.parseInt(
+		document.querySelector<HTMLInputElement>('#totalCnt')?.value ?? '',
+		10,
+	);
+
+	return {
+		rows,
+		totalCount: Number.isFinite(totalCount) ? totalCount : rows.length,
+	};
+}
+
+function parseRecentDisclosureRow(
+	rowEl: HTMLTableRowElement,
+): RecentDisclosureTimeRow | null {
+	const cells = Array.from(rowEl.querySelectorAll<HTMLTableCellElement>('td'));
+	const receiptTime = cells[0]?.textContent?.trim() ?? '';
+	const reportLink = rowEl.querySelector<HTMLAnchorElement>('a[href*="rcpNo="]');
+	const receiptNo = reportLink?.href.match(/[?&]rcpNo=(\d{14})/)?.[1] ?? '';
+	if (!/^\d{2}:\d{2}$/.test(receiptTime) || receiptNo === '') {
+		return null;
+	}
+
+	return {
+		receiptNo,
+		receiptTime,
+	};
 }
 
 function parseCorpCodeXml(xml: string): DartCompany[] {
