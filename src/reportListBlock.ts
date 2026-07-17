@@ -265,11 +265,6 @@ function renderControls(
 	refreshButton.addEventListener('click', () => {
 		void refreshBlock(options, block, refreshButton);
 	});
-
-	const timeButton = controlsEl.createEl('button', { text: '시간 가져오기' });
-	timeButton.addEventListener('click', () => {
-		void fetchVisibleReportTimes(options, block, timeButton);
-	});
 }
 
 async function refreshBlock(
@@ -299,15 +294,21 @@ async function fetchVisibleReportTimes(
 	timeButton: HTMLButtonElement,
 ): Promise<void> {
 	const visibleReports = getVisibleReports(block);
-	if (visibleReports.length === 0) {
-		new Notice('시간을 가져올 보고서가 없습니다.');
+	const reportsWithoutTime = visibleReports.filter(
+		(report) => report.receiptTime === undefined,
+	);
+	if (reportsWithoutTime.length === 0) {
+		new Notice('현재 표시된 보고서의 시간이 이미 저장되어 있습니다.');
 		return;
 	}
 
 	timeButton.disabled = true;
 	timeButton.textContent = '가져오는 중';
 	try {
-		const timesByReceiptNo = await options.fetchUploadTimes(block, visibleReports);
+		const timesByReceiptNo = await options.fetchUploadTimes(
+			block,
+			reportsWithoutTime,
+		);
 		let updatedCount = 0;
 		for (const report of block.reports) {
 			const receiptTime = timesByReceiptNo[report.receiptNo];
@@ -324,7 +325,7 @@ async function fetchVisibleReportTimes(
 		console.error('DART report time fetch failed', error);
 		new Notice(getErrorMessage(error));
 		timeButton.disabled = false;
-		timeButton.textContent = '시간 가져오기';
+		timeButton.textContent = '시간';
 	}
 }
 
@@ -334,6 +335,26 @@ function renderPresetFilters(
 ): void {
 	const filterEl = options.containerEl.createDiv({
 		cls: 'dart-report-list-filters',
+	});
+	const filterActionsEl = filterEl.createDiv({
+		cls: 'dart-report-list-filter-actions',
+	});
+	const selectAllButton = filterActionsEl.createEl('button', {
+		text: '전체 선택',
+	});
+	selectAllButton.addEventListener('click', () => {
+		block.view.enabledPresetIds = REPORT_PRESET_IDS;
+		block.view.includeCorrections = true;
+		void saveAndRender(options, block);
+	});
+
+	const clearButton = filterActionsEl.createEl('button', {
+		text: '전체 해제',
+	});
+	clearButton.addEventListener('click', () => {
+		block.view.enabledPresetIds = [];
+		block.view.includeCorrections = false;
+		void saveAndRender(options, block);
 	});
 
 	for (const preset of REPORT_PRESETS) {
@@ -394,7 +415,11 @@ function renderTable(
 	});
 	const theadEl = tableEl.createEl('thead');
 	const headerRowEl = theadEl.createEl('tr');
-	renderSortableHeader(options, block, headerRowEl, 'receiptDate');
+	renderSortableHeader(options, block, headerRowEl, 'receiptDate', {
+		onFetchTimes: (button) => {
+			void fetchVisibleReportTimes(options, block, button);
+		},
+	});
 	renderSortableHeader(options, block, headerRowEl, 'reportName');
 	renderSortableHeader(options, block, headerRowEl, 'filerName');
 
@@ -438,9 +463,13 @@ function renderSortableHeader(
 	block: DartReportListBlockState,
 	rowEl: HTMLTableRowElement,
 	sortKey: DartReportListSortKey,
+	headerOptions?: {
+		onFetchTimes?: (button: HTMLButtonElement) => void;
+	},
 ): void {
 	const thEl = rowEl.createEl('th');
-	const button = thEl.createEl('button', {
+	const headerEl = thEl.createDiv({ cls: 'dart-report-list-header-cell' });
+	const button = headerEl.createEl('button', {
 		cls: 'dart-report-list-sort-button',
 		text: getSortLabel(block, sortKey),
 	});
@@ -454,6 +483,20 @@ function renderSortableHeader(
 		}
 		void saveAndRender(options, block);
 	});
+
+	if (headerOptions?.onFetchTimes !== undefined) {
+		const timeButton = headerEl.createEl('button', {
+			cls: 'dart-report-list-header-action',
+			text: '시간',
+			attr: {
+				type: 'button',
+			},
+		});
+		timeButton.addEventListener('click', (event) => {
+			event.stopPropagation();
+			headerOptions.onFetchTimes?.(timeButton);
+		});
+	}
 }
 
 async function copyReportUrl(reportUrl: string): Promise<void> {

@@ -117,11 +117,17 @@
 }
 
 .dart-report-list {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
 	overflow-x: auto;
+	padding: 12px;
 }
 
 .dart-report-list h4 {
-	margin: 0 0 8px;
+	font-size: var(--font-ui-medium);
+	font-weight: 700;
+	margin: 0 0 10px;
 }
 
 .dart-report-list-summary {
@@ -130,7 +136,7 @@
 	flex-wrap: wrap;
 	font-size: var(--font-ui-small);
 	gap: 6px 16px;
-	margin-bottom: 10px;
+	margin-bottom: 12px;
 }
 
 .dart-report-list-controls {
@@ -138,7 +144,9 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
-	margin-bottom: 10px;
+	margin-bottom: 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .dart-report-list-controls input[type='date'] {
@@ -151,24 +159,42 @@
 }
 
 .dart-report-list-filters {
+	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px 12px;
-	margin-bottom: 10px;
+	gap: 8px;
+	margin-bottom: 12px;
 }
 
 .dart-report-list-filter {
 	align-items: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
 	display: inline-flex;
 	font-size: var(--font-ui-small);
-	gap: 4px;
+	gap: 5px;
+	padding: 3px 7px;
 	white-space: nowrap;
+}
+
+.dart-report-list-filter-actions {
+	display: inline-flex;
+	gap: 6px;
+	margin-right: 2px;
+}
+
+.dart-report-list-filter-actions button,
+.dart-report-list-controls button {
+	font-size: var(--font-ui-small);
+	height: 28px;
+	padding: 0 10px;
 }
 
 .dart-report-list-count {
 	color: var(--text-muted);
 	font-size: var(--font-ui-small);
-	margin-bottom: 6px;
+	margin-bottom: 8px;
 }
 
 .dart-report-list-empty {
@@ -177,20 +203,70 @@
 }
 
 .dart-report-list-table {
-	border-collapse: collapse;
+	border: 1px solid var(--background-modifier-border);
+	border-collapse: separate;
+	border-radius: 8px;
+	border-spacing: 0;
+	overflow: hidden;
+	table-layout: fixed;
 	width: 100%;
 }
 
 .dart-report-list-table th,
 .dart-report-list-table td {
-	border: 1px solid var(--background-modifier-border);
-	padding: 2px 6px;
-	vertical-align: top;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding: 5px 8px;
+	vertical-align: middle;
 }
 
 .dart-report-list-table th {
 	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	font-weight: 700;
+	text-transform: uppercase;
 	white-space: nowrap;
+}
+
+.dart-report-list-header-cell {
+	align-items: center;
+	display: flex;
+	gap: 6px;
+	justify-content: space-between;
+}
+
+.dart-report-list-header-action {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 5px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	height: 20px;
+	line-height: 1;
+	padding: 0 6px;
+}
+
+.dart-report-list-header-action:hover {
+	color: var(--text-normal);
+}
+
+.dart-report-list-table th:first-child,
+.dart-report-list-table td:first-child {
+	width: 156px;
+	white-space: nowrap;
+}
+
+.dart-report-list-table th:last-child,
+.dart-report-list-table td:last-child {
+	width: 120px;
+}
+
+.dart-report-list-table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.dart-report-list-table tbody tr:hover {
+	background: var(--background-secondary);
 }
 
 .dart-report-list-sort-button {
@@ -201,24 +277,41 @@
 	font: inherit;
 	height: auto;
 	padding: 0;
+	text-align: left;
 }
 
 .dart-report-list-report-cell {
 	align-items: center;
 	display: flex;
-	gap: 4px;
+	gap: 5px;
 	justify-content: flex-start;
 	line-height: 1.2;
 }
 
+.dart-report-list-report-cell a {
+	font-weight: 500;
+	overflow-wrap: anywhere;
+}
+
 .dart-report-list-copy-url-button {
+	align-items: center;
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	color: var(--text-muted);
+	display: inline-flex;
 	flex: 0 0 auto;
 	font-size: 12px;
 	height: 14px;
+	justify-content: center;
 	line-height: 1;
 	min-height: 14px;
 	padding: 0;
 	width: 14px;
+}
+
+.dart-report-list-copy-url-button:hover {
+	color: var(--text-normal);
 }
 
 .dart-report-list-nowrap {

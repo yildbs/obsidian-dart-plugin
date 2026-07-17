@@ -133,11 +133,18 @@ export class DartClient {
 			.sort();
 
 		for (const receiptDate of uniqueDates) {
-			const dayTimes = await this.fetchRecentDisclosureTimesForDate(
-				corpCode,
-				receiptDate,
-			);
-			Object.assign(timesByReceiptNo, dayTimes);
+			try {
+				const dayTimes = await this.fetchRecentDisclosureTimesForDate(
+					corpCode,
+					receiptDate,
+				);
+				Object.assign(timesByReceiptNo, dayTimes);
+			} catch (error) {
+				console.error('DART recent disclosure time fetch failed', {
+					receiptDate,
+					error,
+				});
+			}
 		}
 
 		return timesByReceiptNo;
