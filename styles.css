@@ -184,7 +184,7 @@
 .dart-report-list-table th,
 .dart-report-list-table td {
 	border: 1px solid var(--background-modifier-border);
-	padding: 6px 8px;
+	padding: 2px 6px;
 	vertical-align: top;
 }
 
@@ -201,6 +201,24 @@
 	font: inherit;
 	height: auto;
 	padding: 0;
+}
+
+.dart-report-list-report-cell {
+	align-items: center;
+	display: flex;
+	gap: 4px;
+	justify-content: flex-start;
+	line-height: 1.2;
+}
+
+.dart-report-list-copy-url-button {
+	flex: 0 0 auto;
+	font-size: 12px;
+	height: 14px;
+	line-height: 1;
+	min-height: 14px;
+	padding: 0;
+	width: 14px;
 }
 
 .dart-report-list-nowrap {

@@ -362,21 +362,36 @@ function renderTable(
 			cls: 'dart-report-list-nowrap',
 			text: formatReceiptDate(report.receiptDate),
 		});
+		const reportUrl = buildReportUrl(report.receiptNo);
 		const reportNameEl = rowEl.createEl('td');
-		reportNameEl.createEl('a', {
+		const reportCellEl = reportNameEl.createDiv({
+			cls: 'dart-report-list-report-cell',
+		});
+		reportCellEl.createEl('a', {
 			text: report.reportName,
-			href: buildReportUrl(report.receiptNo),
+			href: reportUrl,
 			attr: {
 				target: '_blank',
 				rel: 'noopener',
 			},
+		});
+		const copyButton = reportCellEl.createEl('button', {
+			cls: 'clickable-icon dart-report-list-copy-url-button',
+			text: '🔗',
+			attr: {
+				'aria-label': 'Dart 보고서 URL 복사',
+				type: 'button',
+			},
+		});
+		copyButton.addEventListener('click', () => {
+			void copyReportUrl(reportUrl);
 		});
 		rowEl.createEl('td', { text: report.filerName });
 		rowEl
 			.createEl('td', { cls: 'dart-report-list-nowrap' })
 			.createEl('a', {
 				text: '열기',
-				href: buildReportUrl(report.receiptNo),
+				href: reportUrl,
 				attr: {
 					target: '_blank',
 					rel: 'noopener',
@@ -406,6 +421,16 @@ function renderSortableHeader(
 		}
 		void saveAndRender(options, block);
 	});
+}
+
+async function copyReportUrl(reportUrl: string): Promise<void> {
+	try {
+		await navigator.clipboard.writeText(reportUrl);
+		new Notice('Dart 보고서 URL을 복사했습니다.');
+	} catch (error) {
+		console.error('DART report URL copy failed', error);
+		new Notice('Dart 보고서 URL을 복사할 수 없습니다.');
+	}
 }
 
 function getVisibleReports(
