@@ -540,6 +540,10 @@ function compareReports(
 ): number {
 	const direction = block.view.sortDirection === 'asc' ? 1 : -1;
 	const key = block.view.sortKey;
+	if (key === 'receiptDate') {
+		return compareReportsByReceiptDate(a, b, direction);
+	}
+
 	const result = getSortValue(a, key).localeCompare(
 		getSortValue(b, key),
 		'ko',
@@ -551,12 +555,36 @@ function compareReports(
 	return b.receiptNo.localeCompare(a.receiptNo);
 }
 
+function compareReportsByReceiptDate(
+	a: DartDisclosureReport,
+	b: DartDisclosureReport,
+	direction: number,
+): number {
+	const dateCompare = a.receiptDate.localeCompare(b.receiptDate);
+	if (dateCompare !== 0) {
+		return dateCompare * direction;
+	}
+
+	const timeCompare = getReceiptTimeSortValue(a).localeCompare(
+		getReceiptTimeSortValue(b),
+	);
+	if (timeCompare !== 0) {
+		return timeCompare * direction;
+	}
+
+	return b.receiptNo.localeCompare(a.receiptNo);
+}
+
+function getReceiptTimeSortValue(report: DartDisclosureReport): string {
+	return report.receiptTime ?? '';
+}
+
 function getSortValue(
 	report: DartDisclosureReport,
 	sortKey: DartReportListSortKey,
 ): string {
 	if (sortKey === 'receiptDate') {
-		return `${report.receiptDate}${report.receiptTime ?? ''}`;
+		return report.receiptDate;
 	}
 	if (sortKey === 'reportName') {
 		return report.reportName;
