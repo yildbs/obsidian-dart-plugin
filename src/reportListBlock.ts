@@ -251,6 +251,16 @@ function renderControls(
 		void options.saveBlock(block);
 	});
 
+	const todayButton = controlsEl.createEl('button', {
+		text: '오늘',
+		attr: { type: 'button' },
+	});
+	todayButton.addEventListener('click', () => {
+		block.endDate = formatDateInput(new Date());
+		block.startDate = clampStartDate(block.startDate, block.endDate);
+		void saveAndRender(options, block);
+	});
+
 	const searchInput = controlsEl.createEl('input', {
 		type: 'search',
 		placeholder: '보고서 검색',
@@ -647,6 +657,13 @@ function clampStartDate(startDate: string, endDate: string): string {
 		return startDate;
 	}
 	return startDate > endDate ? endDate : startDate;
+}
+
+function formatDateInput(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
 }
 
 function formatDateTime(value: string): string {
